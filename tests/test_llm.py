@@ -66,15 +66,18 @@ def test_unsupported_model():
 
 @pytest.mark.asyncio
 @patch("ollama.AsyncClient")
+@patch("ollama.Client")
 async def test_ollama_generate_markdown(
+    mock_client,
     mock_async_client,
     sample_base64_image,
     mock_pixmap,
 ):
     """Test markdown generation using Ollama."""
-    # Mock the Ollama async client
-    mock_client = AsyncMock()
-    mock_async_client.return_value = mock_client
+    # Mock the Ollama clients
+    mock_client.return_value.show.return_value = True
+    mock_async_client_instance = AsyncMock()
+    mock_async_client.return_value = mock_async_client_instance
 
     # Mock the chat responses
     mock_chat = AsyncMock()
@@ -94,7 +97,7 @@ async def test_ollama_generate_markdown(
             }
         }
     ]
-    mock_client.chat = mock_chat
+    mock_async_client_instance.chat = mock_chat
 
     llm = LLM(
         model_name="llama3.2-vision:11b",
@@ -298,16 +301,19 @@ async def test_gemini_generate_markdown(
 
 
 @pytest.mark.asyncio
+@patch("ollama.Client")
 @patch("ollama.AsyncClient")
 async def test_ollama_base64_image_mode(
     mock_async_client,
+    mock_client,
     sample_base64_image,
     mock_pixmap,
 ):
     """Test markdown generation with base64 image mode."""
     # Mock the Ollama async client
-    mock_client = AsyncMock()
-    mock_async_client.return_value = mock_client
+    mock_client.return_value.show.return_value = True
+    mock_async_client_instance = AsyncMock()
+    mock_async_client.return_value = mock_async_client_instance
 
     # Mock the chat responses
     mock_chat = AsyncMock()
@@ -331,7 +337,7 @@ async def test_ollama_base64_image_mode(
             }
         },
     ]
-    mock_client.chat = mock_chat
+    mock_async_client_instance.chat = mock_chat
 
     # Mock the pixmap for image extraction
     mock_pixmap.samples = b"\x00" * (200 * 200 * 3)  # Create correct size buffer
@@ -363,15 +369,19 @@ async def test_ollama_base64_image_mode(
 
 
 @pytest.mark.asyncio
+@patch("ollama.Client")
 @patch("ollama.AsyncClient")
-async def test_ollama_llm_error(mock_async_client, sample_base64_image, mock_pixmap):
+async def test_ollama_llm_error(
+    mock_async_client, mock_client, sample_base64_image, mock_pixmap
+):
     """Test LLMError handling for Ollama."""
     # Mock the Ollama async client
-    mock_client = AsyncMock()
-    mock_async_client.return_value = mock_client
+    mock_client.return_value.show.return_value = True
+    mock_async_client_instance = AsyncMock()
+    mock_async_client.return_value = mock_async_client_instance
 
     # Mock a failed Ollama API call
-    mock_client.chat.side_effect = Exception("Ollama processing failed")
+    mock_async_client_instance.chat.side_effect = Exception("Ollama processing failed")
 
     llm = LLM(
         model_name="llama3.2-vision:11b",
@@ -393,4 +403,4 @@ async def test_ollama_llm_error(mock_async_client, sample_base64_image, mock_pix
         await llm.generate_markdown(sample_base64_image, mock_pixmap, 0)
     assert "Ollama Model processing failed" in str(exc_info.value)
     # Retries and fallback can cause multiple chat attempts; ensure at least one occurred
-    assert mock_client.chat.call_count >= 1
+    assert mock_async_client_instance.chat.call_count >= 1

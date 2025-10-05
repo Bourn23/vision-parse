@@ -60,13 +60,17 @@ def test_convert_pdf_vision_parser_error(markdown_parser, monkeypatch, pdf_path)
 
 
 @pytest.mark.asyncio
+@patch("ollama.Client")
 @patch("ollama.AsyncClient")
 @patch("tqdm.tqdm")
-async def test_parser_with_base64_image_mode(mock_tqdm, mock_async_client, pdf_path):
+async def test_parser_with_base64_image_mode(
+    mock_tqdm, mock_async_client, mock_client, pdf_path
+):
     """Test parser with base64 image mode configuration."""
     # Mock the Ollama async client
-    mock_client = AsyncMock()
-    mock_async_client.return_value = mock_client
+    mock_client.return_value.show.return_value = True
+    mock_async_client_instance = AsyncMock()
+    mock_async_client.return_value = mock_async_client_instance
 
     # Mock the chat responses
     mock_chat = AsyncMock()
@@ -90,7 +94,7 @@ async def test_parser_with_base64_image_mode(mock_tqdm, mock_async_client, pdf_p
             }
         },
     ]
-    mock_client.chat = mock_chat
+    mock_async_client_instance.chat = mock_chat
 
     parser = VisionParser(
         page_config=PDFPageConfig(dpi=300),
@@ -131,15 +135,17 @@ async def test_parser_with_base64_image_mode(mock_tqdm, mock_async_client, pdf_p
 
 
 @pytest.mark.asyncio
+@patch("ollama.Client")
 @patch("ollama.AsyncClient")
 @patch("tqdm.tqdm")
 async def test_parser_with_concurrent_processing(
-    mock_tqdm, mock_async_client, pdf_path
+    mock_tqdm, mock_async_client, mock_client, pdf_path
 ):
     """Test parser with concurrent processing enabled."""
     # Mock the Ollama async client
-    mock_client = AsyncMock()
-    mock_async_client.return_value = mock_client
+    mock_client.return_value.show.return_value = True
+    mock_async_client_instance = AsyncMock()
+    mock_async_client.return_value = mock_async_client_instance
 
     # Mock the chat responses
     mock_chat = AsyncMock()
@@ -162,7 +168,7 @@ async def test_parser_with_concurrent_processing(
         {"message": {"content": f"# Page {i}\n\nTest content for page {i}"}}
         for i in range(2)
     ]
-    mock_client.chat = mock_chat
+    mock_async_client_instance.chat = mock_chat
 
     parser = VisionParser(
         page_config=PDFPageConfig(dpi=300),
@@ -202,8 +208,10 @@ async def test_parser_with_concurrent_processing(
         )
 
 
-def test_parser_with_custom_page_config():
+@patch("ollama.Client")
+def test_parser_with_custom_page_config(mock_client):
     """Test parser initialization with custom page configuration."""
+    mock_client.return_value.show.return_value = True
     custom_config = PDFPageConfig(
         dpi=600,
         color_space="GRAY",
@@ -222,7 +230,9 @@ def test_parser_with_custom_page_config():
     assert parser.page_config.preserve_transparency
 
 
-def test_parser_with_ollama_config():
+@patch("ollama.Client")
+def test_parser_with_ollama_config(mock_client):
+    mock_client.return_value.show.return_value = True
     ollama_config = {
         "OLLAMA_HOST": "http://localhost:11434",
         "OLLAMA_NUM_GPU": "1",
@@ -237,7 +247,10 @@ def test_parser_with_ollama_config():
     assert parser.llm.ollama_config == ollama_config
 
 
-def test_parser_custom_num_workers():
+@patch("ollama.Client")
+def test_parser_custom_num_workers(mock_client):
+    """Test parser initialization with custom number of workers."""
+    mock_client.return_value.show.return_value = True
     custom_num_workers = 10
     parser = VisionParser(
         model_name="llama3.2-vision:11b",
