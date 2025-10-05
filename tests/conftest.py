@@ -21,15 +21,27 @@ def page_config():
     )
 
 
+from unittest.mock import patch
+
+
+from unittest.mock import patch, MagicMock
+
+
 # Fixture initializing the vision-based markdown parser with specific model settings
 @pytest.fixture
 def markdown_parser(page_config):
-    return VisionParser(
-        model_name="llama3.2-vision:11b",
-        temperature=0.7,
-        top_p=0.7,
-        page_config=page_config,
-    )
+    with patch("ollama.Client") as mock_client:
+        mock_instance = mock_client.return_value
+        mock_instance.show.return_value = True
+        mock_instance.chat.return_value = {
+            "message": {"content": "Mocked markdown response"}
+        }
+        yield VisionParser(
+            model_name="llama3.2-vision:11b",
+            temperature=0.7,
+            top_p=0.7,
+            page_config=page_config,
+        )
 
 
 # Fixture handling PDF document lifecycle with proper cleanup
